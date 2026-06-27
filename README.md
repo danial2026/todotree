@@ -64,11 +64,6 @@ Search for TODO and FIXME, case insensitive:
 todotree -pattern "TODO|FIXME" -i
 ```
 
-Limit search depth to 2 levels:
-```bash
-todotree -depth 2
-```
-
 Search only Go and Rust files:
 ```bash
 todotree -ext ".go,.rs"
@@ -79,11 +74,6 @@ Exclude additional directories:
 todotree -exclude ".git,node_modules,dist,tmp"
 ```
 
-Show execution time:
-```bash
-todotree -time
-```
-
 Search from a different directory:
 ```bash
 todotree -dir /path/to/project
@@ -91,23 +81,16 @@ todotree -dir /path/to/project
 
 Search outside git repository root:
 ```bash
-todotree -git-root=false
+todotree -git-root true
 ```
 
-Set custom timeout (default 2s):
-```bash
-todotree -timeout 10s
-```
-
-Output as flat list:
-```bash
-todotree -format list
-```
-
-Output as JSON:
-```bash
-todotree -format json
-```
+> **Note:** The `-git-root` flag accepts multiple formats:
+> - `-git-root true` (space-separated)
+> - `-git-root=false` (with equals)
+> - `-git-root=1` (with equals, numeric)
+> - `-git-root yes` (space-separated)
+> 
+> All other string flags also support space-separated or equals syntax (e.g., `-dir /path`, `-dir=/path`, `-format list`, `-format=list`).
 
 ## Output Format
 
