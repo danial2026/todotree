@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -287,7 +288,7 @@ func worker(ctx context.Context, id int, files <-chan string, pattern *regexp.Re
 }
 
 // formatTreeOutput builds the tree-style output string from all results.
-func formatTreeOutput(allTodos []FileTodos, config *Config, elapsed time.Duration) string {
+func formatTree(allTodos []FileTodos, elapsed time.Duration) string {
 	if len(allTodos) == 0 {
 		return "No TODOs found"
 	}
@@ -311,10 +312,101 @@ func formatTreeOutput(allTodos []FileTodos, config *Config, elapsed time.Duratio
 
 	buf.WriteString(strings.Repeat("─", 24) + "\n")
 	buf.WriteString(fmt.Sprintf("%d TODOs • %d files", totalTodos, totalFiles))
-	if config.showTime {
+	if configShowTime {
 		buf.WriteString(fmt.Sprintf(" • %v", elapsed.Round(time.Millisecond)))
 	}
 	return buf.String()
+}
+
+// formatList outputs a flat list: path:line content
+func formatList(allTodos []FileTodos, elapsed time.Duration) string {
+	if len(allTodos) == 0 {
+		return "No TODOs found"
+	}
+
+	sort.Slice(allTodos, func(i, j int) bool {
+		return allTodos[i].path < allTodos[j].path
+	})
+
+	var buf bytes.Buffer
+	totalTodos := 0
+	totalFiles := len(allTodos)
+
+	for _, ft := range allTodos {
+		for _, todo := range ft.todos {
+			totalTodos++
+			buf.WriteString(fmt.Sprintf("%s:%d %s\n", ft.path, todo.lineNum, todo.content))
+		}
+	}
+
+	buf.WriteString(strings.Repeat("─", 24) + "\n")
+	buf.WriteString(fmt.Sprintf("%d TODOs • %d files", totalTodos, totalFiles))
+	if configShowTime {
+		buf.WriteString(fmt.Sprintf(" • %v", elapsed.Round(time.Millisecond)))
+	}
+	return buf.String()
+}
+
+// formatJSON outputs results as JSON
+func formatJSON(allTodos []FileTodos, elapsed time.Duration) string {
+	type jsonTodo struct {
+		File string `json:"file"`
+		Line int    `json:"line"`
+		Text string `json:"text"`
+	}
+	type jsonOutput struct {
+		Todos []jsonTodo `json:"todos"`
+		Total int        `json:"total"`
+		Files int        `json:"files"`
+		Time  string     `json:"time,omitempty"`
+	}
+
+	if len(allTodos) == 0 {
+		return `{"todos":[],"total":0,"files":0}`
+	}
+
+	sort.Slice(allTodos, func(i, j int) bool {
+		return allTodos[i].path < allTodos[j].path
+	})
+
+	var todos []jsonTodo
+	totalTodos := 0
+	for _, ft := range allTodos {
+		for _, todo := range ft.todos {
+			totalTodos++
+			todos = append(todos, jsonTodo{
+				File: ft.path,
+				Line: todo.lineNum,
+				Text: todo.content,
+			})
+		}
+	}
+
+	out := jsonOutput{
+		Todos: todos,
+		Total: totalTodos,
+		Files: len(allTodos),
+	}
+	if configShowTime {
+		out.Time = elapsed.Round(time.Millisecond).String()
+	}
+
+	data, _ := json.MarshalIndent(out, "", "  ")
+	return string(data)
+}
+
+var configShowTime bool
+
+func formatOutput(allTodos []FileTodos, config *Config, elapsed time.Duration) string {
+	configShowTime = config.showTime
+	switch config.outputFormat {
+	case "list":
+		return formatList(allTodos, elapsed)
+	case "json":
+		return formatJSON(allTodos, elapsed)
+	default:
+		return formatTree(allTodos, elapsed)
+	}
 }
 
 // findGitRoot walks up from startDir to find the nearest .git directory.
@@ -400,6 +492,6 @@ func main() {
 	}
 
 	elapsed := time.Since(startTime)
-	output := formatTreeOutput(allTodos, &config, elapsed)
+	output := formatOutput(allTodos, &config, elapsed)
 	fmt.Println(output)
 }

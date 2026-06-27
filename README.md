@@ -99,7 +99,19 @@ Set custom timeout (default 2s):
 todotree -timeout 10s
 ```
 
+Output as flat list:
+```bash
+todotree -format list
+```
+
+Output as JSON:
+```bash
+todotree -format json
+```
+
 ## Output Format
+
+### Tree (default)
 
 ```
 src/main.rs
@@ -111,22 +123,33 @@ src/parser/lexer.rs
 
   L89   optimize tokenizer
 
-src/tokenizer/mod.rs
-
-  L17   handle UTF-8
-  L82   benchmark allocations
-  L144  remove unsafe block
-
-tests/parser.rs
-
-  L15   add edge cases
-
-README.md
-
-  L31   document benchmarks
-
 ────────────────────────────
-7 TODOs • 5 files • 9ms
+7 TODOs • 2 files • 9ms
+```
+
+### List (`-format list`)
+
+```
+src/main.rs:12 add CLI args
+src/main.rs:41 benchmark parser
+src/parser/lexer.rs:89 optimize tokenizer
+────────────────────────────
+7 TODOs • 2 files • 9ms
+```
+
+### JSON (`-format json`)
+
+```json
+{
+  "todos": [
+    {"file": "src/main.rs", "line": 12, "text": "add CLI args"},
+    {"file": "src/main.rs", "line": 41, "text": "benchmark parser"},
+    {"file": "src/parser/lexer.rs", "line": 89, "text": "optimize tokenizer"}
+  ],
+  "total": 7,
+  "files": 2,
+  "time": "9ms"
+}
 ```
 
 ## How It Works
