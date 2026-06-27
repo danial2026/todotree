@@ -28,7 +28,7 @@ type Config struct {
 	excludeDirs  string
 	workers      int
 	outputFormat string
-	gitRoot      bool
+	gitRoot      string
 	timeout      time.Duration
 }
 
@@ -438,11 +438,12 @@ func main() {
 	flag.StringVar(&config.excludeDirs, "exclude", ".git,node_modules,vendor,dist,build,target", "Directories to exclude (comma separated)")
 	flag.IntVar(&config.workers, "workers", runtime.NumCPU(), "Number of worker goroutines")
 	flag.StringVar(&config.outputFormat, "format", "tree", "Output format: tree, list, json")
-	flag.BoolVar(&config.gitRoot, "git-root", true, "Only search in git repository root")
+	flag.StringVar(&config.gitRoot, "git-root", "true", "Search in git repository root (true/false)")
 	flag.DurationVar(&config.timeout, "timeout", 2*time.Second, "Timeout for search (e.g. 2s, 500ms)")
 	flag.Parse()
 
-	if config.gitRoot {
+	useGitRoot := config.gitRoot == "true" || config.gitRoot == "1" || config.gitRoot == "yes"
+	if useGitRoot {
 		gitRoot := findGitRoot(config.rootDir)
 		if gitRoot != "" {
 			config.rootDir = gitRoot
