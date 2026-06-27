@@ -29,6 +29,7 @@ type Config struct {
 	workers      int
 	outputFormat string
 	gitRoot      string
+	theme        string
 	timeout      time.Duration
 }
 
@@ -288,7 +289,7 @@ func worker(ctx context.Context, id int, files <-chan string, pattern *regexp.Re
 }
 
 // formatTreeOutput builds the tree-style output string from all results.
-func formatTree(allTodos []FileTodos, elapsed time.Duration) string {
+func formatTree(allTodos []FileTodos, config *Config, elapsed time.Duration) string {
 	if len(allTodos) == 0 {
 		return "No TODOs found"
 	}
@@ -297,29 +298,31 @@ func formatTree(allTodos []FileTodos, elapsed time.Duration) string {
 		return allTodos[i].path < allTodos[j].path
 	})
 
+	theme := getTheme(config.theme)
+
 	var buf bytes.Buffer
 	totalTodos := 0
 	totalFiles := len(allTodos)
 
 	for _, ft := range allTodos {
-		buf.WriteString(ft.path + "\n")
+		buf.WriteString(theme.filePrefix + ft.path + theme.fileSuffix + "\n")
 		for _, todo := range ft.todos {
 			totalTodos++
-			buf.WriteString(fmt.Sprintf("  L%-4d %s\n", todo.lineNum, todo.content))
+			buf.WriteString(fmt.Sprintf("%s%-4d%s %s\n", theme.linePrefix, todo.lineNum, theme.lineSuffix, todo.content))
 		}
 		buf.WriteString("\n")
 	}
 
-	buf.WriteString(strings.Repeat("─", 24) + "\n")
-	buf.WriteString(fmt.Sprintf("%d TODOs • %d files", totalTodos, totalFiles))
-	if configShowTime {
-		buf.WriteString(fmt.Sprintf(" • %v", elapsed.Round(time.Millisecond)))
+	buf.WriteString(theme.separator + "\n")
+	buf.WriteString(theme.summary + fmt.Sprintf("%d TODOs • %d files", totalTodos, totalFiles))
+	if config.showTime {
+		buf.WriteString(theme.time + elapsed.Round(time.Millisecond).String())
 	}
 	return buf.String()
 }
 
 // formatList outputs a flat list: path:line content
-func formatList(allTodos []FileTodos, elapsed time.Duration) string {
+func formatList(allTodos []FileTodos, config *Config, elapsed time.Duration) string {
 	if len(allTodos) == 0 {
 		return "No TODOs found"
 	}
@@ -328,6 +331,8 @@ func formatList(allTodos []FileTodos, elapsed time.Duration) string {
 		return allTodos[i].path < allTodos[j].path
 	})
 
+	theme := getTheme(config.theme)
+
 	var buf bytes.Buffer
 	totalTodos := 0
 	totalFiles := len(allTodos)
@@ -335,20 +340,20 @@ func formatList(allTodos []FileTodos, elapsed time.Duration) string {
 	for _, ft := range allTodos {
 		for _, todo := range ft.todos {
 			totalTodos++
-			buf.WriteString(fmt.Sprintf("%s:%d %s\n", ft.path, todo.lineNum, todo.content))
+			buf.WriteString(fmt.Sprintf("%s%s%s:%d %s\n", theme.filePrefix, ft.path, theme.fileSuffix, todo.lineNum, todo.content))
 		}
 	}
 
-	buf.WriteString(strings.Repeat("─", 24) + "\n")
-	buf.WriteString(fmt.Sprintf("%d TODOs • %d files", totalTodos, totalFiles))
-	if configShowTime {
-		buf.WriteString(fmt.Sprintf(" • %v", elapsed.Round(time.Millisecond)))
+	buf.WriteString(theme.separator + "\n")
+	buf.WriteString(theme.summary + fmt.Sprintf("%d TODOs • %d files", totalTodos, totalFiles))
+	if config.showTime {
+		buf.WriteString(theme.time + elapsed.Round(time.Millisecond).String())
 	}
 	return buf.String()
 }
 
 // formatJSON outputs results as JSON
-func formatJSON(allTodos []FileTodos, elapsed time.Duration) string {
+func formatJSON(allTodos []FileTodos, config *Config, elapsed time.Duration) string {
 	type jsonTodo struct {
 		File string `json:"file"`
 		Line int    `json:"line"`
@@ -387,7 +392,7 @@ func formatJSON(allTodos []FileTodos, elapsed time.Duration) string {
 		Total: totalTodos,
 		Files: len(allTodos),
 	}
-	if configShowTime {
+	if config.showTime {
 		out.Time = elapsed.Round(time.Millisecond).String()
 	}
 
@@ -395,17 +400,103 @@ func formatJSON(allTodos []FileTodos, elapsed time.Duration) string {
 	return string(data)
 }
 
-var configShowTime bool
+// Theme holds color/style configuration for output.
+type Theme struct {
+	name       string
+	filePrefix string
+	fileSuffix string
+	linePrefix string
+	lineSuffix string
+	separator  string
+	summary    string
+	time       string
+	hasColors  bool
+}
+
+// getTheme returns the theme by name.
+func getTheme(name string) Theme {
+	themes := map[string]Theme{
+		"default": {
+			name:       "default",
+			filePrefix: "",
+			fileSuffix: "",
+			linePrefix: "  L",
+			lineSuffix: "",
+			separator:  strings.Repeat("─", 24),
+			summary:    "",
+			time:       " • ",
+			hasColors:  false,
+		},
+		"dracula": {
+			name:       "dracula",
+			filePrefix: "\033[38;5;141m",
+			fileSuffix: "\033[0m",
+			linePrefix: "\033[38;5;214m  L",
+			lineSuffix: "\033[0m",
+			separator:  "\033[38;5;62m" + strings.Repeat("─", 24) + "\033[0m",
+			summary:    "\033[38;5;98m",
+			time:       "\033[38;5;62m • \033[0m",
+			hasColors:  true,
+		},
+		"monokai": {
+			name:       "monokai",
+			filePrefix: "\033[38;5;189m",
+			fileSuffix: "\033[0m",
+			linePrefix: "\033[38;5;215m  L",
+			lineSuffix: "\033[0m",
+			separator:  "\033[38;5;60m" + strings.Repeat("─", 24) + "\033[0m",
+			summary:    "\033[38;5;203m",
+			time:       "\033[38;5;60m • \033[0m",
+			hasColors:  true,
+		},
+		"nord": {
+			name:       "nord",
+			filePrefix: "\033[38;5;110m",
+			fileSuffix: "\033[0m",
+			linePrefix: "\033[38;5;144m  L",
+			lineSuffix: "\033[0m",
+			separator:  "\033[38;5;59m" + strings.Repeat("─", 24) + "\033[0m",
+			summary:    "\033[38;5;139m",
+			time:       "\033[38;5;59m • \033[0m",
+			hasColors:  true,
+		},
+		"onedark": {
+			name:       "onedark",
+			filePrefix: "\033[38;5;75m",
+			fileSuffix: "\033[0m",
+			linePrefix: "\033[38;5;214m  L",
+			lineSuffix: "\033[0m",
+			separator:  "\033[38;5;60m" + strings.Repeat("─", 24) + "\033[0m",
+			summary:    "\033[38;5;173m",
+			time:       "\033[38;5;60m • \033[0m",
+			hasColors:  true,
+		},
+		"solarized": {
+			name:       "solarized",
+			filePrefix: "\033[38;5;37m",
+			fileSuffix: "\033[0m",
+			linePrefix: "\033[38;5;166m  L",
+			lineSuffix: "\033[0m",
+			separator:  "\033[38;5;59m" + strings.Repeat("─", 24) + "\033[0m",
+			summary:    "\033[38;5;130m",
+			time:       "\033[38;5;59m • \033[0m",
+			hasColors:  true,
+		},
+	}
+	if t, ok := themes[name]; ok {
+		return t
+	}
+	return themes["default"]
+}
 
 func formatOutput(allTodos []FileTodos, config *Config, elapsed time.Duration) string {
-	configShowTime = config.showTime
 	switch config.outputFormat {
 	case "list":
-		return formatList(allTodos, elapsed)
+		return formatList(allTodos, config, elapsed)
 	case "json":
-		return formatJSON(allTodos, elapsed)
+		return formatJSON(allTodos, config, elapsed)
 	default:
-		return formatTree(allTodos, elapsed)
+		return formatTree(allTodos, config, elapsed)
 	}
 }
 
@@ -439,6 +530,7 @@ func main() {
 	flag.IntVar(&config.workers, "workers", runtime.NumCPU(), "Number of worker goroutines")
 	flag.StringVar(&config.outputFormat, "format", "tree", "Output format: tree, list, json")
 	flag.StringVar(&config.gitRoot, "git-root", "true", "Search in git repository root (true/false)")
+	flag.StringVar(&config.theme, "theme", "default", "Theme: default, dracula, monokai, nord, onedark, solarized")
 	flag.DurationVar(&config.timeout, "timeout", 2*time.Second, "Timeout for search (e.g. 2s, 500ms)")
 	flag.Parse()
 

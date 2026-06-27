@@ -51,6 +51,7 @@ todotree [flags]
 | `-timeout` | `2s` | Timeout for search (e.g. `2s`, `500ms`) |
 | `-time` | `false` | Show execution time |
 | `-format` | `tree` | Output format: tree, list, json |
+| `-theme` | `default` | Color theme: default, dracula, monokai, nord, onedark, solarized |
 
 ### Examples
 
@@ -72,16 +73,6 @@ todotree -ext ".go,.rs"
 Exclude additional directories:
 ```bash
 todotree -exclude ".git,node_modules,dist,tmp"
-```
-
-Search from a different directory:
-```bash
-todotree -dir /path/to/project
-```
-
-Search outside git repository root:
-```bash
-todotree -git-root true
 ```
 
 > **Note:** The `-git-root` flag accepts multiple formats:
