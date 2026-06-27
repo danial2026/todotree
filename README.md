@@ -1,4 +1,10 @@
-# todotree
+```ascii
+ dMMMMMMP .aMMMb  dMMMMb  .aMMMb dMMMMMMP dMMMMb  dMMMMMP dMMMMMP 
+   dMP   dMP"dMP dMP VMP dMP"dMP   dMP   dMP.dMP dMP     dMP      
+  dMP   dMP dMP dMP dMP dMP dMP   dMP   dMMMMK" dMMMP   dMMMP     
+ dMP   dMP.aMP dMP.aMP dMP.aMP   dMP   dMP"AMF dMP     dMP        
+dMP    VMMMP" dMMMMP"  VMMMP"   dMP   dMP dMP dMMMMMP dMMMMMP     
+```
 
 A fast, minimal CLI tool to search for TODOs and other patterns in your codebase, respecting .gitignore rules.
 
