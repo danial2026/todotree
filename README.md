@@ -4,17 +4,12 @@ A fast, minimal CLI tool to search for TODOs and other patterns in your codebase
 
 ## Features
 
-- Fast parallel file scanning using worker goroutines
-- Respects .gitignore patterns (including negation patterns)
-- Configurable search depth (like the `tree` command)
-- Customizable search patterns with regex support
-- Case-insensitive search option
-- File extension filtering
-- Directory exclusion (default: .git, node_modules, vendor, dist, build, target)
-- Tree-style output with file paths and line numbers
-- Execution time display
-- Automatic git repository root detection
-- Configurable timeout to prevent hangs on large directories
+- respects `.gitignore`, skips binaries
+- parallel scanning with timeout
+- auto git root detection
+- 3 output formats: tree, list, json
+- 6 color themes
+- depth limit, extension filter, regex patterns
 
 ## Installation
 
